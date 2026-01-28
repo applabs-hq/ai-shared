@@ -1,0 +1,15 @@
+---
+description: Apply specific networking practices in Dart
+globs:
+  - "*.dart"
+alwaysApply: true
+---
+
+# Network Requests
+
+Network requests are handled with the `JumpNetworkService` in `jump_connect` library. 
+- This provides a custom network request called `JumpNetworkRequest` which takes two generic types T and K.
+- K is the actual type we decode into, i.e. OrderDto.
+- T is either just K if api returns a single object, else it is `List<K>` if api returns multiple
+- All network calls should be made inside datasources or infra services
+- We provide an authenticated network service client or an unauthenticated one, all bff calls except auth require authenticated and all external calls should use unauthenticated
