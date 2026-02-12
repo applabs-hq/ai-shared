@@ -1,0 +1,184 @@
+---
+alwaysApply: true
+name: update-pubspec-versions
+model: inherit
+description: Updating major or minor versions in pubspec and resolving conflicts until pub get works for the current flutter version
+---
+
+# Subagent: Update Dart/Flutter Dependencies (No New Overrides)
+
+## Hard Rules
+
+- **Do not add any new `dependency_overrides`.**
+- **Existing overrides are allowed**, but must be:
+  - **explicitly called out** (file + entries)
+  - treated as **technical debt** to reduce later (optional), not expanded
+- If you believe an override is required to make progress, **STOP** and report why (instead of adding it).
+
+## Goal / Strategy
+
+Preference order:
+
+1. **Upgrade dependencies first to the highest feasible versions** (major upgrades allowed).
+2. If `pub get` fails, **downgrade only what’s necessary** until we reach the **best compatibility set** that allows `pub get`.
+3. Avoid “papering over” conflicts with overrides.
+
+## Commands
+
+All Flutter/Dart commands must be prefixed with `fvm`.
+
+Examples:
+
+- `fvm flutter pub get`
+- `fvm flutter pub upgrade --major-versions`
+- `fvm flutter pub outdated`
+- `fvm flutter analyze`
+- `fvm flutter test`
+
+---
+
+## Workflow
+
+### 0) Baseline Capture
+
+From repo root:
+
+- Record toolchain versions:
+  - `fvm flutter --version`
+  - `fvm dart --version`
+- Ensure clean working tree.
+
+### 1) Detect and Report Existing Overrides (Allowed)
+
+Search for overrides:
+
+- `rg -n "^\s*dependency_overrides\s*:" -S .`
+
+If any are found:
+
+- **Do not remove or modify them automatically** (unless specifically requested).
+- **Report them up-front** in the final summary:
+  - file path(s)
+  - override entries
+
+> Rule: We can proceed with updates while overrides exist, but **we must not introduce new override entries** or new override blocks.
+
+### 2) Inspect Current Dependency Status
+
+- `fvm flutter pub outdated`
+
+If monorepo/multi-package:
+
+- Run per package (or via your workspace tool).
+
+### 3) Max Upgrade Attempt (Highest Versions First)
+
+In each package (start with the root app package if applicable):
+
+1. Upgrade broadly:
+   - `fvm flutter pub upgrade --major-versions`
+2. Fetch:
+   - `fvm flutter pub get`
+
+If `pub get` succeeds:
+
+- Move to the next package and repeat.
+- After all packages succeed, go to **Step 6**.
+
+### 4) If `pub get` Fails: Diagnose Precisely
+
+Run:
+
+- `fvm flutter pub get -v`
+
+Capture:
+
+- The **first** constraint conflict chain (“Because A depends on B …”)
+- The specific package constraints involved
+
+Optional:
+
+- `fvm flutter pub deps --style=compact`
+
+### 5) Iterative Downgrade Until Compatibility
+
+Principle: downgrade the **smallest surface-area** package(s) that unblock the solver.
+
+Repeat until `pub get` succeeds:
+
+1. Identify the conflicting package set from solver output.
+2. Prefer adjustments in this order:
+   1. **Dev dependencies** (least runtime impact)
+   2. **Leaf packages** (few dependents)
+   3. **Narrow direct dependencies**
+   4. **Framework-adjacent / foundation packages** (last resort)
+3. Set constraints to the **highest compatible** range (prefer `^x.y.z`).
+
+After each change:
+
+- `fvm flutter pub get`
+- If still failing, repeat.
+
+**Do not add overrides.** If the only apparent solution is an override:
+
+- **STOP** and report the exact conflict and why an override would be tempting.
+
+### 5a) Common Conflict Families (Heuristics)
+
+- **Flutter SDK constraint mismatch**:
+  - Choose the highest package versions compatible with the current Flutter SDK (don’t force).
+- **Codegen toolchain conflicts**:
+  - Keep `analyzer`, `build_runner`, `source_gen`, `json_serializable` aligned as a compatible family.
+- **Core libs conflicts** (`intl`, `collection`, `meta`, etc.):
+  - Often transitive: prefer updating the direct dependency that pins an older version.
+
+### 6) Stabilize After Successful Solve
+
+Once `fvm flutter pub get` succeeds:
+
+- `fvm flutter pub outdated` (confirm remaining laggards)
+- `fvm flutter analyze` (if available)
+- `fvm flutter test` (if available)
+
+If failures are due only to minor API changes:
+
+- Prefer fixing code over downgrading, unless it meaningfully increases risk/scope.
+
+### 7) Reproducibility / Hygiene
+
+- Confirm override state didn’t change:
+  - `rg -n "^\s*dependency_overrides\s*:" -S .`
+- Ensure we did not add any new override entries/blocks.
+
+### 8) Final Report Format
+
+Provide:
+
+- Toolchain versions (FVM Flutter/Dart)
+- Existing overrides found (file + entries)
+- Upgrade summary:
+  - majors upgraded
+  - any required downgrades + “why” (solver conflict references)
+- Validation results:
+  - `pub get` ✅
+  - `analyze` ✅/❌
+  - `test` ✅/❌
+- Follow-ups:
+  - deps still pinned below latest and the constraint preventing upgrade
+
+---
+
+## STOP Template (Override Would Be Needed)
+
+If you conclude an override is the only way forward:
+
+- **STOP: Would require a new `dependency_overrides` entry (not allowed)**
+- Conflict summary:
+  - package A requires …
+  - package B requires …
+- Candidate override that would “solve” it (for explanation only — do not add):
+  - `X: version`
+- Safer alternatives:
+  - downgrade A to …
+  - upgrade B to …
+  - change Flutter SDK / toolchain (if applicable)
