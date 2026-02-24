@@ -1,0 +1,11 @@
+---
+description: Only use inline imports when inside a module folder
+globs:
+  - "*.dart"
+alwaysApply: true
+---
+
+# Relative Imports
+
+- If you are inside features/some_module/ then you may access other files inside that relatively. Treat this as a standalone dart library.
+- If you are accessing ANYTHING in the project outside of that feature / module folder, you MUST use a package import
