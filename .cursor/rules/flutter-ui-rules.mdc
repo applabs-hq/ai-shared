@@ -1,0 +1,114 @@
+---
+description: Tips and rules for building Responsive, Accessible Flutter UIs
+alwaysApply: false
+---
+
+## Widget Best Practices
+
+- **Immutability:** Widgets (especially `StatelessWidget`) are immutable; when the UI needs to change, Flutter rebuilds the widget tree.
+- **Composition:** Prefer composing smaller widgets over extending existing ones. Use this to avoid deep widget nesting.
+- **Private Widgets:** Use small, private `Widget` classes instead of private helper methods that return a `Widget`.
+- **Build Methods:** Break down large `build()` methods into smaller, reusable private Widget classes.
+- **List Performance:** Use `ListView.builder` or `SliverList` for long lists to create lazy-loaded lists for performance.
+- **Const Constructors:** Use `const` constructors for widgets and in `build()` methods whenever possible to reduce rebuilds.
+
+## Visual Design & Theming
+
+- **Responsiveness:** Ensure the app is mobile responsive and adapts to
+  different screen sizes, working perfectly on mobile and web.
+- **Typography:** Stress and emphasize font sizes to ease understanding, e.g., hero text, section headlines, list headlines, keywords in paragraphs.
+- **Background:** Apply subtle noise texture to the main background to add a premium, tactile feel.
+- **Shadows:** Multi-layered drop shadows create a strong sense of depth; cards have a soft, deep shadow to look "lifted."
+
+## UI Theming and Styling Code
+
+- **Responsiveness:** Use `LayoutBuilder` or `ResponsiveBuilder` or `ResponsiveLayout` to create responsive
+  UIs.
+- **Text:** Use `Theme.of(context).textTheme` for text styles.
+- **Text Fields:** Configure `textCapitalization`, `keyboardType`, and
+
+## Material Theming Best Practices
+
+### Building Flexible and Overflow-Safe Layouts
+
+#### For Rows and Columns
+
+- **`Expanded`:** Use to make a child widget fill the remaining available space
+  along the main axis.
+- **`Flexible`:** Use when you want a widget to shrink to fit, but not
+  necessarily grow. Don't combine `Flexible` and `Expanded` in the same `Row` or
+  `Column`.
+- **`Wrap`:** Use when you have a series of widgets that would overflow a `Row`
+  or `Column`, and you want them to move to the next line.
+
+#### For General Content
+
+- **`SingleChildScrollView`:** Use when your content is intrinsically larger
+  than the viewport, but is a fixed size.
+- **`ListView` / `GridView`:** For long lists or grids of content, always use a
+  builder constructor (`.builder`).
+- **`FittedBox`:** Use to scale or fit a single child widget within its parent.
+- **`LayoutBuilder`:** Use for complex, responsive layouts to make decisions
+  based on the available space.
+
+### Layering Widgets with Stack
+
+- **`Positioned`:** Use to precisely place a child within a `Stack` by anchoring it to the edges.
+- **`Align`:** Use to position a child within a `Stack` using alignments like `Alignment.center`.
+
+### Advanced Layout with Overlays
+
+- **`OverlayPortal`:** Use this widget to show UI elements (like custom
+  dropdowns or tooltips) "on top" of everything else. It manages the
+  `OverlayEntry` for you.
+
+  ```dart
+  class MyDropdown extends StatefulWidget {
+    const MyDropdown({super.key});
+
+    @override
+    State<MyDropdown> createState() => _MyDropdownState();
+  }
+
+  class _MyDropdownState extends State<MyDropdown> {
+    final _controller = OverlayPortalController();
+
+    @override
+    Widget build(BuildContext context) {
+      return OverlayPortal(
+        controller: _controller,
+        overlayChildBuilder: (BuildContext context) {
+          return const Positioned(
+            top: 50,
+            left: 10,
+            child: Card(
+              child: Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text('I am an overlay!'),
+              ),
+            ),
+          );
+        },
+        child: ElevatedButton(
+          onPressed: _controller.toggle,
+          child: const Text('Toggle Overlay'),
+        ),
+      );
+    }
+  }
+  ```
+
+## Accessibility (A11Y)
+
+Implement accessibility features to empower all users, assuming a wide variety
+of users with different physical abilities, mental abilities, age groups,
+education levels, and learning styles.
+
+- **Color Contrast:** Ensure text has a contrast ratio of at least **4.5:1**
+  against its background.
+- **Dynamic Text Scaling:** Test your UI to ensure it remains usable when users
+  increase the system font size.
+- **Semantic Labels:** Use the `Semantics` widget to provide clear, descriptive
+  labels for UI elements.
+- **Screen Reader Testing:** Regularly test your app with TalkBack (Android) and
+  VoiceOver (iOS).
