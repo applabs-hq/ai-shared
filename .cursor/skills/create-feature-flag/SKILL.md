@@ -34,11 +34,14 @@ The subject describes the target and scope of the flag. Some example subjects ar
 
 You should be able to read the name as a sentence that describes the purpose and scope of a flag. For example:
 
-“Rollout: a new feature”
-“Configure: a setting”
-“Allow: an action”
-“Enable: an entitlement”
-“Show: an offer”
+- MUST have a verb
+- Verb MUST be followed by colon :
+
+“Rollout: New feature”
+“Configure: Setting A”
+“Allow: Action”
+“Enable: Entitlement”
+“Show: Offer”
 
 - Choose a suitable UpperCamelCase key name for the flag, it must be unique. The key should accurately reflect the display name
 - ALWAYS Namespace flags with underscore prefixes. Client name for apps, i.e. `KIOSK_`, and `SHARED_` for global flags.
