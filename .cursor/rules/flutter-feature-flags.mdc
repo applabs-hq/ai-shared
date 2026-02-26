@@ -1,0 +1,18 @@
+---
+description: How and where flutter feature flags are used and created
+alwaysApply: false
+---
+
+# Flutter Feature Flags
+
+Feature flags are managed through the `JumpFeatureManager` and its change provider. The service listens to live changes and then using `getValue` on that riverpod provider we can get live rebuilds with flags.
+
+Flags are used to control any moderately sized new piece of functionality or large scale refactors
+
+## Where Flags are
+
+- Flags are defined either globally in `features.dart` or locally in `*_features.dart` where `*` is the app name, i.e. Kiosk
+
+## Creating Flags
+
+Flags are created using the `create-feature-flag` skill. This creates them locally and remotely

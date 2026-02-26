@@ -9,3 +9,27 @@ alwaysApply: true
 
 - If you are inside features/some_module/ then you may access other files inside that relatively. Treat this as a standalone dart library.
 - If you are accessing ANYTHING in the project outside of that feature / module folder, you MUST use a package import
+
+i.e.
+
+```
+features/
+  auth/
+    auth.api.dart
+    src/
+      domain/
+        some_entity.dart
+      ui/
+        some_view.dart
+  orders/
+    orders.api.dart
+    src/
+      domain/
+        some_entity.dart
+      ui/
+        some_view.dart
+
+```
+
+- If you are in auth/src/ui/ you may access everything inside src/ relatively
+- You may NOT access anything inside orders/ relatively, and instead must import via package import of the `*.api.dart` file
