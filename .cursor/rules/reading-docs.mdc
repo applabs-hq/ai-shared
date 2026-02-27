@@ -1,29 +1,9 @@
 ---
 description: Always look for relevant docs/ folders in projects or workspaces
-globs:
-  - "*.dart"
 alwaysApply: true
 ---
 
 # General Rules
 
-- Look for and always follow all appliccable documentation inside /docs root folder of any project, or at root. - Only read docs based on their name you feel are relevant to your current context, do not waste tokens.
+- Look for and always follow all appliccable documentation inside /docs root folder of any project, or at root. - ONLY read docs based on their name you feel are relevant to your current context, do NOT waste tokens.
 - There is a [docs/](../../docs) folder in this ai-shared project which is attached to vs code workspaces so you may access it. Docs here apply to general platform wide architectures
-- Apply strong documentation and self documenting code techniques throughout this repository. Do not "over document" like a juinor engineer, clean and informative comments only where required for complex logic, and always dart docs for exposed APIs
-
----
-
-# Project Overview
-
-- This is a SaaS platform for Point of Sale both internal and customer facing tools
-- There is a POS, a Kiosk, a Web App, and a Mobile App all built with Flutter
-- There is a Portal / Backoffice and a C# backend
-
----
-
-# Architecture Overview
-
-- Flutter implements some custom Clean Architecture approach using riverpod for state management
-- Build runner is heavily used for code generation
-
----
