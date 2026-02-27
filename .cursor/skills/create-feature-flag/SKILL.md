@@ -1,6 +1,6 @@
 ---
 name: create-feature-flag
-description: Creates a new feature flag defined in code and LaunchDarkly
+description: Creates a new feature flag defined in Flutter code and LaunchDarkly remotely via CLI
 ---
 
 # Create Feature Flag
@@ -16,7 +16,7 @@ This is a skill for creating new feature flag locally and in the LaunchDarkly se
 
 ## When to Use
 
-- Use this skill ONLY when instructed, never use this yourself
+- Use this skill when undertaking a significantly-sized feature or large complex refactor
 - This skill is helpful for creating feature flags to manage code visibility in production environments
 
 ## Instructions
