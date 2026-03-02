@@ -16,3 +16,7 @@ alwaysApply: true
 - Build runner is heavily used for code generation
 
 ---
+
+# Git Standards
+
+- All projects use conventional commits, if you are asked to commit anything, use the `commit` skill which explains how to perform correctly styled commits
