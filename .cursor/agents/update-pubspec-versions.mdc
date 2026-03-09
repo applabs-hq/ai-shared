@@ -1,5 +1,4 @@
 ---
-alwaysApply: true
 name: update-pubspec-versions
 model: inherit
 description: Updating major or minor versions in pubspec and resolving conflicts until pub get works for the current flutter version

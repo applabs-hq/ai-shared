@@ -1,0 +1,78 @@
+---
+name: review-and-fix
+model: inherit
+description: Run a structured review, fix or flag outlying issues, clean up ai slop and forgotten debug symbols
+---
+
+# Review and ship
+
+## Trigger
+
+Reviewing changes before shipping. Close key issues and open/update PR.
+
+## Workflow
+
+1. **Run internal review and fix first** (see [Internal review and fix](#internal-review-and-fix-subagent) below). Do not proceed to commit/PR until the work tree is clean at start and the internal review report is produced.
+2. Review diff against base branch and identify behavior-impacting risks.
+3. Run or update tests for changed behavior.
+4. Fix critical issues before finalizing.
+5. DO NOT commit any changes you make during this step
+
+## Internal review and fix (subagent)
+
+Use this as the **internal review and fix** pass. It runs **before** any commit or PR steps. It **does not commit**; it only ensures a clean start, reviews against architecture/docs, applies fixes, and writes a report.
+
+### 1. Ensure work tree is clean before starting
+
+- Run `git status` and `git diff` (and optionally `git diff --staged`).
+- If the work tree has **any** uncommitted changes (staged or unstaged):
+  - Run the **commit** skill to provide structured concise commits
+- Only once the work tree is clean, proceed to the next step.
+
+### 2. Review against architecture and documentation
+
+- **Diff scope:** `git fetch origin main` (or the project’s base branch), then `git diff origin/main...HEAD` to see what changed.
+- **Sources of truth:** Review all changed code against:
+  - **Cursor rules** in `.cursor/rules/` (e.g. inline-imports, reading-docs, flutter-rules, main-instruction).
+  - **Project docs:** any `docs/` at repo root and `.cursor/docs/` (e.g. commit-conventions, architecture).
+- **Checks:**
+  - Layering and module boundaries (e.g. no repo exports in `*.api.dart`, inter-module only via `*.api.dart`).
+  - Naming and structure (e.g. `*.entity.dart`, `*.service.dart`, `*.controller.dart`), dependency injection and providers.
+  - Tests: presence and patterns per `flutter-testing.md` (e.g. controller tests, ProviderContainerBuilder, fake boxes).
+  - No debug symbols, print statements, or “AI slop” left in code.
+  - Correctness, security, and possible regressions.
+
+### 3. Fix and report
+
+- **Fix** only what is necessary to align with the architecture and docs above; avoid unrelated edits.
+- **Run relevant tests** for the changed code (e.g. `flutter test` for affected modules or test files; use the Dart MCP or project test commands where available). Re-run after fixes if you changed behavior.
+- **Do not commit** these fixes.
+- **Write a short report** and present it to the user. Include:
+  - **Summary of changes:** list of files touched and what was fixed (e.g. “removed debug print”, “aligned import with *.api.dart”, “fixed repo export”).
+  - **Findings:** critical / warning / note (e.g. “Critical: X”, “Warning: Y”, “Note: Z”).
+  - **Tests run and outcomes:** which tests were run and pass/fail result.
+  - **Recommendations:** any follow-ups (e.g. tests to add, refactors to do in a later PR).
+
+### 4. After the internal review
+
+- The work tree will now contain the fixes (uncommitted). The user may then run the **commit** skill themselves or continue with the main [Workflow](#workflow) (commit, push, PR) in a separate step.
+
+## Suggested Checks
+
+```bash
+git fetch origin main
+git diff origin/main...HEAD
+git status
+flutter test   # or project-specific test command for changed modules
+```
+
+## Guardrails
+
+- Prioritize correctness, security, and regressions over style-only comments.
+- Keep commits focused and avoid unrelated file changes.
+- If pre-commit checks fail, fix the issues rather than bypassing hooks.
+
+## Output
+
+- **From internal review subagent:** Summary of changes, findings (critical/warning/note), tests run and outcomes, recommendations; no commit.
+- **From main workflow:** Findings summary, tests run and outcomes, PR URL.
