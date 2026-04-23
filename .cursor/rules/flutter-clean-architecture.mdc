@@ -1,3 +1,10 @@
+---
+description: Flutter clean architecture — layers, feature modules, *.api.dart, DI, naming
+globs:
+  - "**/lib/**/*.dart"
+alwaysApply: false
+---
+
 # Flutter Frontend Clean Architecture
 
 ## Folder Structure
@@ -65,6 +72,7 @@ The domain layer also encapsulates the application layer in this structure.
 
 ### Handlers
 
+- A handler is specifically something that reacts to live behaviour and performs a side effect or fires a new event
 - A domain handler can be an event handler that handles incoming events off the bus. e.g. CartUpdatedHandler
 - A handler can also be listening to a stream from the repository or service and converting that into an event or performing side effects / calling services / business logic.
 - Naming is \*.handler.dart

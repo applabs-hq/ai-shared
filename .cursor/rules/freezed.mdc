@@ -1,0 +1,9 @@
+---
+alwaysApply: true
+globs: 
+  - "**/lib/**/*.dart"
+---
+
+# Freezed Generation
+
+- NEVER GENERATE YOUR OWN FREEZED FILES. NEVER EDIT THEM BY HAND. ALWAYS RUN BUILD RUNNER.

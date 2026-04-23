@@ -1,3 +1,11 @@
+---
+description: Flutter module tests — structure, ProviderContainerBuilder, Riverpod, mocks, conventions
+globs:
+  - "**/test/**/*.dart"
+  - "**/integration_test/**/*.dart"
+alwaysApply: false
+---
+
 # Flutter Testing Rules
 
 This document defines how we test Flutter. Tests are **per-module**, and favour **real implementations** over mocks where it makes sense.

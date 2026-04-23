@@ -1,0 +1,49 @@
+---
+description: Layered logging expectations for JumpLogSink and app observability
+globs: **/*.dart
+alwaysApply: false
+---
+
+# Logging (layered)
+
+Use a stable `name:` (often from a `*.analytics.dart` or shared log-name constant) so logs group by feature in dashboards.
+
+## Services
+
+- **Primary place** for logs that describe **what the application is doing** (behavior, orchestration, domain-relevant happy paths).
+- **Typical scope:** happy-path and meaningful milestones; errors from repository calls are **usually** surfaced at the **repository** instead, so service logs are not required to duplicate every failure path.
+- Inject `JumpLogSink` in services; avoid ad-hoc `print`.
+
+## Repositories
+
+- **Technical logging for developers** (implementation detail: I/O, parsing, cache, sync).
+- Log **both** success and failure where the call can fail (happy + sad path), including caught errors and context (ids, operation).
+
+## Data sources
+
+- **Do not log** from data sources (local/remote). Keep noise and duplication down; repository owns technical logging.
+
+## Enrichment
+
+- Add fields to attributes map that help debugging and developer context / querying. Do NOT leak personal info, do NOT put huge objects in here. Define extensions for domain models to help ease this, i.e.
+
+```dart
+extension CartAnalyticAttributes on Cart {
+  Map<String, dynamic> get analyticAttributes {
+    ...
+  }
+}
+```
+
+## UI controllers
+
+- Log **only when necessary** (e.g. rare diagnostics). Prefer propagating errors to state/UI over logging in the controller.
+
+## Handlers
+
+- Follow the same spirit as services when reacting to events/side effects: behavioral logs are fine; keep `name:` consistent with the feature’s analytics/log constants where applicable.
+
+```dart
+// Prefer shared log name
+logger.log('Fetched cart', name: CartAnalytics.logName, level: JumpLogLevel.debug);
+```
