@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "marionette": {
+      "command": "./.fvm/flutter_sdk/bin/dart",
+      "args": ["run", "marionette_mcp"]
+    },
+    "dart": {
+      "command": "./.fvm/flutter_sdk/bin/dart",
+      "args": ["mcp-server"]
+    },
+    "context7": {
+      "url": "https://mcp.context7.com/mcp"
+    }
+  }
+}
