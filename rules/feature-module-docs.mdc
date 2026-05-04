@@ -1,0 +1,45 @@
+---
+description: Feature MODULE.md — domain doc pattern, template location, what to include or exclude; developer-confirmed business rules only; keep in sync when wiring modules or handlers
+globs: lib/features/**/*
+alwaysApply: false
+---
+
+# Feature MODULE.md
+
+## Why
+
+Each feature keeps a **MODULE.md** next to its API barrel so humans and agents share one short map of domain wiring, ports, and drift anchors—without duplicating code.
+
+## Where the template lives
+
+- **Blank copy-paste body:** `.cursor/skills/module-documentation/reference.md`
+- **When to create/update and drift rules:** `.cursor/skills/module-documentation/SKILL.md`
+
+Do **not** paste the full template into this rule; the skill is canonical.
+
+## Business rules (mandatory policy)
+
+- **Never assume** product or domain rules (pricing, fees, surcharges, channels, eligibility, money, compliance). Do **not** add or imply **## Business rules [VERIFY]** content from inference, “typical POS behaviour”, or other apps.
+- **Only** document a business rule when it is **explicitly stated or confirmed by a developer** (conversation, ticket, review). If unclear, **ask** before encoding rules in MODULE.md or code.
+- Once written under **Business rules [VERIFY]**, treat them as **drift-sensitive**: code changes that contradict the table require an intentional doc update and should align with developer intent.
+
+## What belongs in MODULE.md
+
+- **At a glance, purpose & boundaries, lifecycle** (or N/A with reason)
+- **Business rules [VERIFY]** — optional section; **only** developer-confirmed rules (see above); omit entirely if none apply or none are confirmed
+- **Ports (incoming)** and **adapters (outgoing)** — behavioural contracts and type names, not every `ref.watch`
+- **Side effects** downstream (state, bus, persistence) when that is the module’s job
+- **Entry points [VERIFY]** — only section that must list concrete **paths** to barrel, DI, module
+- **Progressive disclosure** — numbered list with **paths** into handlers/module/DI; then package-level pointers without file paths
+- Prefer **typed AppEvents** as documented ports over unexplained Riverpod/stream side effects
+
+## What does not belong
+
+- **UI** (widgets, screens, routes UX): not MODULE.md; a future **FEATURE.md** may cover that
+- **Assumed business rules** — if not confirmed, do not document as fact
+- Boilerplate only (**Logger**, generic providers) unless behaviourally part of the contract
+- File paths outside **Entry points** and **Progressive disclosure**
+
+## When working here
+
+If you change **module init**, **handlers**, **DI**, **event subscriptions**, **core behaviour**, **what the feature owns**, or **developer-confirmed business rules**, update **MODULE.md** in the same change (or follow up immediately) so `[VERIFY]` and tables stay true.
