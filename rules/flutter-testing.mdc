@@ -1,5 +1,5 @@
 ---
-description: Flutter module tests — structure, ProviderContainerBuilder, Riverpod, mocks, conventions
+description: Flutter module tests — pyramid, philosophy, structure, ProviderContainerBuilder, Riverpod, mocks, conventions
 globs:
   - "**/test/**/*.dart"
   - "**/integration_test/**/*.dart"
@@ -12,7 +12,139 @@ This document defines how we test Flutter. Tests are **per-module**, and favour 
 
 ---
 
-## 1. Structure and scope
+## 1. Testing philosophy
+
+### The test pyramid
+
+Invest testing effort according to the pyramid — most tests should be small and fast, with progressively fewer tests at higher levels:
+
+```
+          ╱╲
+         ╱  ╲         E2E tests (~5%)
+        ╱    ╲        Full user flows, real device or browser
+       ╱──────╲
+      ╱        ╲      Integration tests (~15%)
+     ╱          ╲     Component interactions, API boundaries
+    ╱────────────╲
+   ╱              ╲   Unit tests (~80%)
+  ╱                ╲  Pure logic, isolated, milliseconds each
+ ╱──────────────────╲
+```
+
+### The Beyoncé rule
+
+If you liked it, you should have put a test on it. Infrastructure changes, refactoring, and migrations are not responsible for catching your bugs — your tests are. If a change breaks your code and you did not have a test for it, that is on you.
+
+### Test sizes (resource model)
+
+Beyond pyramid levels, classify tests by what resources they consume:
+
+| Size | Constraints | Speed | Example |
+|------|----------------|--------|---------|
+| **Small** | Single process, no I/O, no network, no database | Milliseconds | Pure function tests, data transforms, domain logic |
+| **Medium** | Multi-process OK, localhost only, no external services | Seconds | API tests with test DB, `integration_test` on emulator, controller tests with fakes |
+| **Large** | Multi-machine OK, external services allowed | Minutes | Full E2E, performance benchmarks, staging integration |
+
+Small tests should make up the vast majority of your suite. They are fast, reliable, and easier to debug when they fail.
+
+### Decision guide
+
+- **Is it pure logic with no side effects?** → **Unit test (small).**
+- **Does it cross a boundary (API, database, file system)?** → **Integration test (medium).**
+- **Is it a critical user flow that must work end-to-end?** → **E2E test (large)** — limit these to critical paths.
+
+### Writing good tests
+
+#### Test state, not interactions
+
+Assert on the **outcome** of an operation, not on which methods were called internally. Tests that verify call sequences break when you refactor, even if behaviour is unchanged.
+
+```dart
+// Good: tests what the code does (state-based)
+test('returns tasks sorted by creation date, newest first', () async {
+  final tasks = await listTasks(
+    sortBy: TaskSort.createdAt,
+    sortOrder: SortOrder.desc,
+  );
+  expect(
+    tasks.first.createdAt.isAfter(tasks[1].createdAt),
+    isTrue,
+  );
+});
+```
+
+```dart
+// Bad: tests implementation details (interaction-based)
+test('calls database with ORDER BY created_at DESC', () async {
+  await listTasks(
+    sortBy: TaskSort.createdAt,
+    sortOrder: SortOrder.desc,
+  );
+  verify(
+    mockDb.query(argThat(contains('ORDER BY created_at DESC'))),
+  ).called(1);
+});
+```
+
+#### DAMP over DRY in tests
+
+In production code, DRY (Do not Repeat Yourself) is usually right. In tests, **DAMP** (Descriptive And Meaningful Phrases) is better. A test should read like a specification — each test should tell a complete story without making the reader trace shared helpers. Duplication in tests is acceptable when it makes each case independently understandable.
+
+#### Prefer real implementations over mocks
+
+Use the **simplest test double** that still gives confidence. The more your tests use real code, the more they catch real bugs.
+
+**Preference order (most to least preferred):**
+
+1. **Real implementation** — highest confidence.
+2. **Fake** — in-memory or lightweight stand-in (e.g. `FakeCacheBox`, in-memory repo).
+3. **Stub** — returns canned data, minimal behaviour.
+4. **Mock (interaction verification)** — use sparingly.
+
+Use mocks only when the real dependency is too slow, non-deterministic, or has side effects you cannot control (remote APIs, platform channels, email). Over-mocking produces suites that pass while production breaks.
+
+This aligns with the rest of this document: **ProviderContainerBuilder**, real services and repositories, **fake cache boxes** instead of disk, and **mock remotes** only at the network boundary.
+
+#### Arrange–Act–Assert (same idea as Given–When–Then)
+
+```dart
+test('marks overdue tasks when deadline has passed', () {
+  // Arrange
+  final task = createTask(
+    title: 'Test',
+    deadline: DateTime(2026, 1, 1),
+  );
+
+  // Act
+  final result = checkOverdue(task, DateTime(2026, 1, 2));
+
+  // Assert
+  expect(result.isOverdue, isTrue);
+});
+```
+
+#### One assertion per concept
+
+Prefer separate tests for separate behaviours (empty title vs trim vs max length), not one mega-test that asserts everything about validation.
+
+#### Name tests descriptively
+
+Group and name tests so they read like a specification, e.g. `TaskService.completeTask` with cases like *sets status to completed*, *throws for missing task*, *is idempotent when already completed* — not `works`, `handles errors`, `test3`.
+
+### Anti-patterns to avoid
+
+| Anti-pattern | Problem | Fix |
+|--------------|---------|-----|
+| Testing implementation detail | Breaks on refactor though behaviour is unchanged | Assert inputs and outputs, not internal structure |
+| Flaky tests (timing, order) | Erodes trust | Deterministic setup; isolate state |
+| Testing framework / SDK code | Wastes time | Test **your** code |
+| Snapshot abuse | Huge diffs, unreviewed | Use sparingly; review every change |
+| No test isolation | Pass alone, fail together | Each test owns setup/teardown |
+| Mocking everything | Green tests, broken prod | Prefer real → fake → stub → mock; mock only at necessary boundaries |
+
+---
+
+## 2. Structure and scope
 
 ### Per-module tests
 
@@ -32,7 +164,7 @@ This document defines how we test Flutter. Tests are **per-module**, and favour 
 
 ---
 
-## 2. ProviderContainerBuilder and Riverpod
+## 3. ProviderContainerBuilder and Riverpod
 
 ### Prefer Riverpod and the builder
 
@@ -49,7 +181,7 @@ This document defines how we test Flutter. Tests are **per-module**, and favour 
 
 ---
 
-## 3. Testing with real layers
+## 4. Testing with real layers
 
 ### Services and repositories
 
@@ -59,7 +191,7 @@ This document defines how we test Flutter. Tests are **per-module**, and favour 
 
 ---
 
-## 4. Controller testing
+## 5. Controller testing
 
 **Prefer controller tests** to cover real user interactions, loading state, and UI state. They are among the highest-value tests because a single test can exercise the full stack: controller → service → repository → data sources, with only the lowest-level I/O faked (e.g. fake cache boxes) and remotes mocked where needed.
 
@@ -82,7 +214,7 @@ This document defines how we test Flutter. Tests are **per-module**, and favour 
 
 ---
 
-## 5. Riverpod: listening and reading state
+## 6. Riverpod: listening and reading state
 
 - Many providers are **auto-dispose**; to keep them alive and read current state, **listen** to the provider.
 - Use **`container.listen(SomeProvider, (prev, next) {})`** to get a **`ProviderSubscription`**. Use **`subscription.read()`** to get the **current value**.
@@ -107,7 +239,7 @@ addTearDown(sub.cancel);
 
 ---
 
-## 6. Async and waiting in tests
+## 7. Async and waiting in tests
 
 - **`Future.delayed(Duration.zero)`** – use to yield to the next event-loop tick when you need a state update or a microtask to run (e.g. after a repository write or stream emission).
 - **Mockito `untilCalled`** – use with a timeout to wait for a specific mock call (e.g. `await untilCalled(mockRemote.upsert(any))`) instead of arbitrary sleeps.
@@ -115,7 +247,9 @@ addTearDown(sub.cancel);
 
 ---
 
-## 7. Mocks: where and when
+## 8. Mocks: where and when
+
+Mocks sit at the **bottom** of the test-double preference list (see **§1 — Prefer real implementations over mocks**). Use them at clear boundaries: network remotes, routers in controller tests, or other slow/non-deterministic dependencies.
 
 ### Module-local mocks
 
@@ -128,30 +262,19 @@ addTearDown(sub.cancel);
 
 ---
 
-## Running Tests
+## 9. Running tests
 
-- **Running Tests:** To run tests, use the `run_tests` tool if it is available,
-  otherwise use `flutter test`.
-- **Unit Tests:** Use `package:test` for unit tests.
-- **Widget Tests:** Use `package:flutter_test` for widget tests.
-- **Integration Tests:** Use `package:integration_test` for integration tests.
-- **Assertions:** Prefer using `package:checks` for more expressive and readable
-  assertions over the default `matchers`.
+- **Running tests:** Use the `run_tests` tool if it is available; otherwise use `flutter test`.
+- **Unit tests:** Use `package:test` for unit tests.
+- **Widget tests:** Use `package:flutter_test` for widget tests.
+- **Integration tests:** Use `package:integration_test` for integration tests; add as a `dev_dependency` with `sdk: flutter` when needed.
+- **Assertions:** Prefer `package:checks` for expressive assertions where the project uses it.
 
-### Testing Best practices
+**Coverage:** Aim for meaningful coverage aligned with the pyramid — depth on domain and controllers, selective E2E for critical flows.
 
-- **Convention:** Follow the Given-When-Then pattern.
-- **Unit Tests:** Write unit tests for domain logic, data layer, and state
-  management.
-- **Widget Tests:** Write widget tests for UI components.
-- **Integration Tests:** For broader application validation, use integration tests to verify end-to-end user flows.
-- **integration_test package:** Use the `integration_test` package from the Flutter SDK for integration tests. Add it as a `dev_dependency` in
-  `pubspec.yaml` by specifying `sdk: flutter`.
-- **Mocks:** Prefer fakes or stubs over mocks. If mocks are absolutely
-  necessary, use `mockito` or `mocktail` to create mocks for dependencies.
-- **Coverage:** Aim for high test coverage.
+---
 
-## 8. Quick reference
+## 10. Quick reference
 
 | Goal                        | Approach                                                                                                                                                                                             |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -164,3 +287,4 @@ addTearDown(sub.cancel);
 | Wait for next async tick    | `Future.delayed(Duration.zero)` or `subscription.readNext()`                                                                                                                                         |
 | Wait for mock call          | `await untilCalled(mock.method(any))` (optionally with timeout)                                                                                                                                      |
 | Widget tests                | Only for UI / JumpUI components; not for feature behaviour currently                                                                                                                                 |
+| Test doubles                | Prefer real code → fake → stub → mock (see §1)                                                                                                                                                        |
