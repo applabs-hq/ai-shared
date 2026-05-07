@@ -1,19 +1,21 @@
 ---
 name: tdd
-description: Test-driven development with red-green-refactor loop. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development.
+description: Flutter and Dart test-driven development with red-green-refactor loop. Use when user wants to build Flutter features or fix bugs using TDD, mentions "red-green-refactor", wants Riverpod/provider tests, integration-style module tests, or asks for test-first development.
 ---
 
-# Test-Driven Development
+# Flutter Test-Driven Development
 
 ## Philosophy
 
 **Core principle**: Tests should verify behavior through public interfaces, not implementation details. Code can change entirely; tests shouldn't.
 
-**Good tests** are integration-style: they exercise real code paths through public APIs. They describe _what_ the system does, not _how_ it does it. A good test reads like a specification - "user can checkout with valid cart" tells you exactly what capability exists. These tests survive refactors because they don't care about internal structure.
+**Good Flutter tests** follow `rules/flutter-testing.mdc`: per-module tests, mostly small and fast, using real implementations where practical. Prefer controller/service tests that exercise the app's Riverpod dependency graph through `ProviderContainerBuilder`, fake local storage boxes, and mocks only at true boundaries such as remotes, routers, platform channels, time, or randomness.
+
+**Good tests** are integration-style: they exercise real code paths through public APIs, providers, controllers, or services. They describe _what_ the module does, not _how_ it does it. A good test reads like a specification - "loads saved orders from cache" tells you exactly what capability exists. These tests survive refactors because they don't care about internal structure.
 
 **Bad tests** are coupled to implementation. They mock internal collaborators, test private methods, or verify through external means (like querying a database directly instead of using the interface). The warning sign: your test breaks when you refactor, but behavior hasn't changed. If you rename an internal function and tests fail, those tests were testing implementation, not behavior.
 
-See [tests.md](tests.md) for examples and [mocking.md](mocking.md) for mocking guidelines.
+See [tests.md](tests.md) for Dart examples and [mocking.md](mocking.md) for Flutter mocking guidelines.
 
 ## Anti-Pattern: Horizontal Slices
 
@@ -28,7 +30,7 @@ This produces **crap tests**:
 
 **Correct approach**: Vertical slices via tracer bullets. One test → one implementation → repeat. Each test responds to what you learned from the previous cycle. Because you just wrote the code, you know exactly what behavior matters and how to verify it.
 
-```
+```text
 WRONG (horizontal):
   RED:   test1, test2, test3, test4, test5
   GREEN: impl1, impl2, impl3, impl4, impl5
@@ -48,14 +50,18 @@ When exploring the codebase, use the project's domain glossary so that test name
 
 Before writing any code:
 
+- [ ] Read `rules/flutter-testing.mdc` when working in Flutter/Dart tests
 - [ ] Confirm with user what interface changes are needed
 - [ ] Confirm with user which behaviors to test (prioritize)
 - [ ] Identify opportunities for [deep modules](deep-modules.md) (small interface, deep implementation)
 - [ ] Design interfaces for [testability](interface-design.md)
 - [ ] List the behaviors to test (not implementation steps)
+- [ ] Choose the smallest useful test type: unit, controller/service, widget, integration, or E2E
+- [ ] Identify the provider/DI entry point to test through
+- [ ] Decide which dependencies are real, fake, stubbed, or mocked using the Flutter testing rule's preference order
 - [ ] Get user approval on the plan
 
-Ask: "What should the public interface look like? Which behaviors are most important to test?"
+Ask: "What should the public interface or provider look like? Which behaviors are most important to test?"
 
 **You can't test everything.** Confirm with the user exactly which behaviors matter most. Focus testing effort on critical paths and complex logic, not every possible edge case.
 
@@ -63,9 +69,9 @@ Ask: "What should the public interface look like? Which behaviors are most impor
 
 Write ONE test that confirms ONE thing about the system:
 
-```
-RED:   Write test for first behavior → test fails
-GREEN: Write minimal code to pass → test passes
+```text
+RED:   Write one Dart test for first behavior -> test fails
+GREEN: Write minimal Flutter/Dart code to pass -> test passes
 ```
 
 This is your tracer bullet - proves the path works end-to-end.
@@ -74,9 +80,9 @@ This is your tracer bullet - proves the path works end-to-end.
 
 For each remaining behavior:
 
-```
-RED:   Write next test → fails
-GREEN: Minimal code to pass → passes
+```text
+RED:   Write next Dart test -> fails
+GREEN: Minimal code to pass -> passes
 ```
 
 Rules:
@@ -85,6 +91,8 @@ Rules:
 - Only enough code to pass current test
 - Don't anticipate future tests
 - Keep tests focused on observable behavior
+- Use `ProviderContainerBuilder` for Riverpod module tests when available
+- Prefer real services/repositories/local data sources with fake boxes; mock remotes and routers only where needed
 
 ### 4. Refactor
 
@@ -100,10 +108,12 @@ After all tests pass, look for [refactor candidates](refactoring.md):
 
 ## Checklist Per Cycle
 
-```
+```text
 [ ] Test describes behavior, not implementation
-[ ] Test uses public interface only
+[ ] Test uses public interface, provider, controller, or service only
 [ ] Test would survive internal refactor
+[ ] Test follows Flutter testing rule: real -> fake -> stub -> mock
+[ ] Async waits are deterministic (`readNext`, zero-delay tick, stream/future, or `untilCalled`)
 [ ] Code is minimal for this test
 [ ] No speculative features added
 ```

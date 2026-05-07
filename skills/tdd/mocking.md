@@ -1,15 +1,16 @@
 # When to Mock
 
-Mock at **system boundaries** only:
+Follow the Flutter testing rule's preference order: **real implementation -> fake -> stub -> mock**. Mock at **system boundaries** only:
 
-- External APIs (payment, email, etc.)
-- Databases (sometimes - prefer test DB)
+- Remote data sources and external APIs
+- Routers in controller tests
+- Platform channels
 - Time/randomness
-- File system (sometimes)
+- File system or disk-backed cache when a fake is not enough
 
 Don't mock:
 
-- Your own classes/modules
+- Your own services, repositories, controllers, or data sources when a real implementation can run in-process
 - Internal collaborators
 - Anything you control
 
@@ -17,43 +18,59 @@ Don't mock:
 
 At system boundaries, design interfaces that are easy to mock:
 
-**1. Use dependency injection**
+### 1. Use Dependency Injection
 
-Pass external dependencies in rather than creating them internally:
+Read dependencies from Riverpod providers or accept them through constructors instead of creating them internally:
 
-```typescript
+```dart
 // Easy to mock
-function processPayment(order, paymentClient) {
-  return paymentClient.charge(order.total);
+class PaymentService {
+  const PaymentService(this.gateway);
+
+  final PaymentGateway gateway;
+
+  Future<PaymentResult> process(Order order) {
+    return gateway.charge(order.total);
+  }
 }
 
 // Hard to mock
-function processPayment(order) {
-  const client = new StripeClient(process.env.STRIPE_KEY);
-  return client.charge(order.total);
+class PaymentService {
+  Future<PaymentResult> process(Order order) {
+    final gateway = StripePaymentGateway(apiKey);
+    return gateway.charge(order.total);
+  }
 }
 ```
 
-**2. Prefer SDK-style interfaces over generic fetchers**
+### 2. Prefer SDK-Style Interfaces Over Generic Fetchers
 
-Create specific functions for each external operation instead of one generic function with conditional logic:
+Create specific methods for each external operation instead of one generic method with conditional logic:
 
-```typescript
-// GOOD: Each function is independently mockable
-const api = {
-  getUser: (id) => fetch(`/users/${id}`),
-  getOrders: (userId) => fetch(`/users/${userId}/orders`),
-  createOrder: (data) => fetch('/orders', { method: 'POST', body: data }),
-};
+```dart
+// GOOD: Each method is independently mockable
+abstract interface class OrdersRemoteDataSource {
+  Future<OrderDTO> getOrder(String id);
+  Future<List<OrderDTO>> getOrdersForCustomer(String customerId);
+  Future<OrderDTO> createOrder(CreateOrderRequest request);
+}
 
-// BAD: Mocking requires conditional logic inside the mock
-const api = {
-  fetch: (endpoint, options) => fetch(endpoint, options),
-};
+// BAD: Mocking requires conditional logic inside the mock.
+abstract interface class ApiClient {
+  Future<Object?> request(String path, {String method, Object? body});
+}
 ```
 
 The SDK approach means:
+
 - Each mock returns one specific shape
 - No conditional logic in test setup
-- Easier to see which endpoints a test exercises
-- Type safety per endpoint
+- Easier to see which remote operation a test exercises
+- Type safety per operation
+
+## Flutter Test Setup
+
+- Use `ProviderContainerBuilder` to override boundary providers.
+- Prefer fake cache boxes over real Hive/disk.
+- Prefer real services and repositories pulled from the container.
+- Generate Mockito mocks module-locally unless the same mock is needed by multiple modules; shared mocks belong in shared test helpers.

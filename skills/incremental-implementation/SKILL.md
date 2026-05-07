@@ -20,7 +20,7 @@ Build in thin vertical slices — implement one piece, test it, verify it, then 
 
 ## The Increment Cycle
 
-```
+```text
 ┌──────────────────────────────────────┐
 │                                      │
 │   Implement ──→ Test ──→ Verify ──┐  │
@@ -47,7 +47,7 @@ For each slice:
 
 Build one complete path through the stack:
 
-```
+```text
 Slice 1: Create a task (DB + API + basic UI)
     → Tests pass, user can create a task via the UI
 
@@ -67,7 +67,7 @@ Each slice delivers working end-to-end functionality.
 
 When backend and frontend need to develop in parallel:
 
-```
+```text
 Slice 0: Define the API contract (types, interfaces, OpenAPI spec)
 Slice 1a: Implement backend against the contract + API tests
 Slice 1b: Implement frontend against mock data matching the contract
@@ -78,7 +78,7 @@ Slice 2: Integrate and test end-to-end
 
 Tackle the riskiest or most uncertain piece first:
 
-```
+```text
 Slice 1: Prove the WebSocket connection works (highest risk)
 Slice 2: Build real-time task updates on the proven connection
 Slice 3: Add offline support and reconnection
@@ -99,16 +99,16 @@ After writing code, review it against these checks:
 - Would a staff engineer look at this and say "why didn't you just..."?
 - Am I building for hypothetical future requirements, or the current task?
 
-```
+```text
 SIMPLICITY CHECK:
 ✗ Generic EventBus with middleware pipeline for one notification
 ✓ Simple function call
 
-✗ Abstract factory pattern for two similar components
-✓ Two straightforward components with shared utilities
+✗ Abstract factory pattern for two similar widgets
+✓ Two straightforward widgets with shared helpers
 
 ✗ Config-driven form builder for three forms
-✓ Three form components
+✓ Three form widgets
 ```
 
 Three similar lines of code is better than a premature abstraction. Implement the naive, obviously-correct version first. Optimize only after correctness is proven with tests.
@@ -127,9 +127,9 @@ Do NOT:
 
 If you notice something worth improving outside your task scope, note it — don't fix it:
 
-```
+```text
 NOTICED BUT NOT TOUCHING:
-- src/utils/format.ts has an unused import (unrelated to this task)
+- lib/utils/format.dart has an unused import (unrelated to this task)
 - The auth middleware could use better error messages (separate task)
 → Want me to create tasks for these?
 ```
@@ -138,7 +138,7 @@ NOTICED BUT NOT TOUCHING:
 
 Each increment changes one logical thing. Don't mix concerns:
 
-**Bad:** One commit that adds a new component, refactors an existing one, and updates the build config.
+**Bad:** One commit that adds a new widget, refactors an existing one, and updates the build config.
 
 **Good:** Three separate commits — one for each change.
 
@@ -150,11 +150,11 @@ After each increment, the project must build and existing tests must pass. Don't
 
 If a feature isn't ready for users but you need to merge increments:
 
-```typescript
+```dart
 // Feature flag for work-in-progress
-const ENABLE_TASK_SHARING = process.env.FEATURE_TASK_SHARING === "true";
+final enableTaskSharing = featureFlags.taskSharingEnabled;
 
-if (ENABLE_TASK_SHARING) {
+if (enableTaskSharing) {
   // New sharing UI
 }
 ```
@@ -165,10 +165,19 @@ This lets you merge small increments to the main branch without exposing incompl
 
 New code should default to safe, conservative behavior:
 
-```typescript
+```dart
 // Safe: disabled by default, opt-in
-export function createTask(data: TaskInput, options?: { notify?: boolean }) {
-  const shouldNotify = options?.notify ?? false;
+class CreateTaskOptions {
+  const CreateTaskOptions({this.notify = false});
+
+  final bool notify;
+}
+
+Future<Task> createTask(
+  TaskInput data, {
+  CreateTaskOptions options = const CreateTaskOptions(),
+}) async {
+  final shouldNotify = options.notify;
   // ...
 }
 ```
@@ -186,13 +195,13 @@ Each increment should be independently revertable:
 
 When directing an agent to implement incrementally:
 
-```
+```text
 "Let's implement Task 3 from the plan.
 
 Start with just the database schema change and the API endpoint.
 Don't touch the UI yet — we'll do that in the next increment.
 
-After implementing, run `npm test` and `npm run build` to verify
+After implementing, run `flutter test` and `flutter analyze` to verify
 nothing is broken."
 ```
 
@@ -203,10 +212,10 @@ Be explicit about what's in scope and what's NOT in scope for each increment.
 After each increment, verify:
 
 - [ ] The change does one thing and does it completely
-- [ ] All existing tests still pass (`npm test`)
-- [ ] The build succeeds (`npm run build`)
-- [ ] Type checking passes (`npx tsc --noEmit`)
-- [ ] Linting passes (`npm run lint`)
+- [ ] All existing tests still pass (`flutter test`)
+- [ ] Static analysis passes (`flutter analyze`)
+- [ ] Formatting is clean (`dart format --set-exit-if-changed .`)
+- [ ] The build succeeds where relevant (`flutter build ...`)
 - [ ] The new functionality works as expected
 - [ ] The change is committed with a descriptive message
 

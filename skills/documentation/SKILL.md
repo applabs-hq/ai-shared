@@ -26,7 +26,7 @@ Document decisions, not just code. The most valuable documentation captures the 
 
 Comment the _why_, not the _what_:
 
-```typescript
+```dart
 // BAD: Restates the code
 // Increment counter by 1
 counter += 1;
@@ -42,30 +42,31 @@ if (now - windowStart > WINDOW_SIZE_MS) {
 
 ### When NOT to Comment
 
-```typescript
+```dart
 // Don't comment self-explanatory code
-function calculateTotal(items: CartItem[]): number {
-  return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+Money calculateTotal(List<CartItem> items) {
+  return items.fold(
+    Money.zero,
+    (sum, item) => sum + item.price * item.quantity,
+  );
 }
 
 // Don't leave TODO comments for things you should just do now
 // TODO: add error handling  ← Just add it
 
 // Don't leave commented-out code
-// const oldImplementation = () => { ... }  ← Delete it, git has history
+// Future<void> oldImplementation() async { ... }  ← Delete it, git has history
 ```
 
 ### Document Known Gotchas
 
-```typescript
-/**
- * IMPORTANT: This function must be called before the first render.
- * If called after hydration, it causes a flash of unstyled content
- * because the theme context isn't available during SSR.
- *
- * See ADR-003 for the full design rationale.
- */
-export function initializeTheme(theme: Theme): void {
+```dart
+/// IMPORTANT: This must run before the first frame.
+/// If called later, the app may briefly render with the wrong theme because
+/// persisted settings have not been loaded into the provider graph yet.
+///
+/// See ADR-003 for the full design rationale.
+Future<void> initializeTheme(ThemeMode themeMode) async {
   // ...
 }
 ```
@@ -74,22 +75,24 @@ export function initializeTheme(theme: Theme): void {
 
 For public APIs (REST, GraphQL, library interfaces):
 
-### Inline with Types (Preferred for TypeScript)
+### Dart API docs
 
-```typescript
-/**
- * Creates a new task.
- *
- * @param input - Task creation data (title required, description optional)
- * @returns The created task with server-generated ID and timestamps
- * @throws {ValidationError} If title is empty or exceeds 200 characters
- * @throws {AuthenticationError} If the user is not authenticated
- *
- * @example
- * const task = await createTask({ title: 'Buy groceries' });
- * console.log(task.id); // "task_abc123"
- */
-export async function createTask(input: CreateTaskInput): Promise<Task> {
+```dart
+/// Creates a new task.
+///
+/// [input] contains the task title and optional description.
+/// Returns the created task with server-generated ID and timestamps.
+///
+/// Throws [ValidationException] if the title is empty or exceeds 200
+/// characters. Throws [AuthenticationException] if the user is not
+/// authenticated.
+///
+/// Example usage:
+/// final task = await createTask(
+///   const CreateTaskInput(title: 'Buy groceries'),
+/// );
+/// print(task.id);
+Future<Task> createTask(CreateTaskInput input) async {
   // ...
 }
 ```
@@ -130,18 +133,18 @@ One-paragraph description of what this project does.
 ## Quick Start
 
 1. Clone the repo
-2. Install dependencies: `npm install`
+2. Install dependencies: `flutter pub get`
 3. Set up environment: `cp .env.example .env`
-4. Run the dev server: `npm run dev`
+4. Run the app: `flutter run`
 
 ## Commands
 
-| Command         | Description              |
-| --------------- | ------------------------ |
-| `npm run dev`   | Start development server |
-| `npm test`      | Run tests                |
-| `npm run build` | Production build         |
-| `npm run lint`  | Run linter               |
+| Command           | Description          |
+| ----------------- | -------------------- |
+| `flutter run`     | Run the app          |
+| `flutter test`    | Run tests            |
+| `flutter analyze` | Run static analysis  |
+| `dart format .`   | Format Dart code     |
 
 ## Architecture
 
@@ -180,7 +183,7 @@ For shipped features:
 
 Special consideration for AI agent context:
 
-- **CLAUDE.md / rules files** — Document project conventions so agents follow them
+- **AGENTS.md / rules files** — Document project conventions so agents follow them
 - **Spec files** — Keep specs / contexts updated so agents build the right thing
 - **ADRs** — Help agents understand why past decisions were made (prevents re-deciding)
 - **Inline gotchas** — Prevent agents from falling into known traps
@@ -214,4 +217,4 @@ After documenting:
 - [ ] API functions have parameter and return type documentation
 - [ ] Known gotchas are documented inline where they matter
 - [ ] No commented-out code remains
-- [ ] Rules files (CLAUDE.md etc.) are current and accurate
+- [ ] Rules files (AGENTS.md etc.) are current and accurate
